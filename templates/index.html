@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Expense Tracker</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Expense tracker</h1>
+      <p class="sub">Log what you spend and see where it goes.</p>
+    </div>
+    <button class="ghost" id="themeBtn" type="button">Toggle theme</button>
+  </header>
+
+  <section class="totals" aria-label="Totals">
+    <div class="total main"><span>Total spent</span><strong id="totalAll">₹0</strong></div>
+    <div class="total"><span>This month</span><strong id="totalMonth">₹0</strong></div>
+    <div class="total"><span>Entries</span><strong id="count">0</strong></div>
+  </section>
+
+  <div class="grid">
+    <!-- ADD FORM -->
+    <section class="panel">
+      <h2>Add an expense</h2>
+      <!-- No <form> tag: we handle the button click in JavaScript -->
+      <label for="desc">Description</label>
+      <input id="desc" type="text" maxlength="60" placeholder="Lunch, bus pass, notebook…">
+      <label for="amount">Amount (₹)</label>
+      <input id="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="250">
+      <label for="category">Category</label>
+      <select id="category"></select>
+      <label for="date">Date</label>
+      <input id="date" type="date">
+      <p class="error" id="error" role="alert"></p>
+      <button class="primary" id="addBtn" type="button">Add expense</button>
+    </section>
+
+    <!-- LIST + BREAKDOWN -->
+    <section class="panel">
+      <div class="toolbar">
+        <h2 style="margin:0">Expenses</h2>
+        <span class="spacer"></span>
+        <select id="filter" aria-label="Filter by category"></select>
+        <button class="ghost" id="clearBtn" type="button">Clear all</button>
+      </div>
+      <ul id="list"></ul>
+      <div class="bars" id="bars"></div>
+    </section>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
