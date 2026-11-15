@@ -10,7 +10,7 @@
 <main>
   <header>
     <div>
-      <h1>Expensa tracker</h1>
+      <h1>Expense tracker</h1>
       <p class="sub">Log what you spend and see where it goes.</p>
     </div>
     <button class="ghost" id="themeBtn" type="button">Toggle theme</button>
@@ -25,7 +25,7 @@
   <div class="grid">
     <!-- ADD FORM -->
     <section class="panel">
-      <h2>Add an expense</h2>
+      <h2 id="formTitle">Add an expense</h2>
       <!-- No <form> tag: we handle the button click in JavaScript -->
       <label for="desc">Description</label>
       <input id="desc" type="text" maxlength="60" placeholder="Lunch, bus pass, notebook…">
@@ -37,6 +37,7 @@
       <input id="date" type="date">
       <p class="error" id="error" role="alert"></p>
       <button class="primary" id="addBtn" type="button">Add expense</button>
+      <button class="ghost cancel" id="cancelBtn" type="button" hidden>Cancel edit</button>
     </section>
 
     <!-- LIST + BREAKDOWN -->
@@ -44,9 +45,16 @@
       <div class="toolbar">
         <h2 style="margin:0">Expenses</h2>
         <span class="spacer"></span>
-        <select id="filter" aria-label="Filter by category"></select>
         <button class="ghost" id="clearBtn" type="button">Clear all</button>
       </div>
+      <div class="filters">
+        <input class="wide" id="search" type="search" placeholder="Search by description…" aria-label="Search">
+        <select id="filter" aria-label="Filter by category"></select>
+        <button class="ghost reset" id="resetBtn" type="button">Reset filters</button>
+        <label>From<input id="from" type="date"></label>
+        <label>To<input id="to" type="date"></label>
+      </div>
+      <p class="sub" id="showing"></p>
       <ul id="list"></ul>
       <div class="bars" id="bars"></div>
     </section>

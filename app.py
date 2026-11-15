@@ -75,21 +75,8 @@ def index():
 
 
 # ---------- API (JSON) ----------
-@app.get("/api/expenses")
-def list_expenses():
-    category = request.args.get("category", "All")
-    sql, params = "SELECT * FROM expenses", []
-    if category != "All":
-        sql += " WHERE category = ?"
-        params.append(category)
-    sql += " ORDER BY date DESC, id DESC"
-    rows = run(get_db(), sql, params).fetchall()
-    return jsonify([dict(r) for r in rows])
-
-
-@app.post("/api/expenses")
-def add_expense():
-    data = request.get_json(silent=True) or {}
+def parse_expense(data):
+    """Validate the JSON sent by the browser. Returns (values, error_response)."""
     description = str(data.get("description", "")).strip()
     category = data.get("category")
     expense_date = data.get("date") or date.today().isoformat()
@@ -97,23 +84,76 @@ def add_expense():
         amount = float(data.get("amount"))
     except (TypeError, ValueError):
         amount = 0
-
     if not description:
-        return jsonify(error="Enter a description."), 400
+        return None, (jsonify(error="Enter a description."), 400)
     if amount <= 0:
-        return jsonify(error="Enter an amount greater than 0."), 400
+        return None, (jsonify(error="Enter an amount greater than 0."), 400)
     if category not in CATEGORIES:
-        return jsonify(error="Choose a valid category."), 400
+        return None, (jsonify(error="Choose a valid category."), 400)
+    return (description[:60], amount, category, expense_date), None
 
+
+@app.get("/api/expenses")
+def list_expenses():
+    """Optional filters: ?category=Food&q=bus&start=2026-11-01&end=2026-11-30"""
+    category = request.args.get("category", "All")
+    q = request.args.get("q", "").strip()
+    start = request.args.get("start", "")
+    end = request.args.get("end", "")
+
+    where, params = [], []
+    if category != "All":
+        where.append("category = ?")
+        params.append(category)
+    if q:
+        where.append("LOWER(description) LIKE ?")
+        params.append("%" + q.lower() + "%")
+    if start:
+        where.append("date >= ?")      # dates are ISO text, so text comparison works
+        params.append(start)
+    if end:
+        where.append("date <= ?")
+        params.append(end)
+
+    sql = "SELECT * FROM expenses"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY date DESC, id DESC"
+    rows = run(get_db(), sql, params).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.post("/api/expenses")
+def add_expense():
+    values, error = parse_expense(request.get_json(silent=True) or {})
+    if error:
+        return error
     db = get_db()
     sql = "INSERT INTO expenses (description, amount, category, date) VALUES (?, ?, ?, ?)"
-    params = (description[:60], amount, category, expense_date)
     if USE_PG:
-        new_id = run(db, sql + " RETURNING id", params).fetchone()["id"]
+        new_id = run(db, sql + " RETURNING id", values).fetchone()["id"]
     else:
-        new_id = run(db, sql, params).lastrowid
+        new_id = run(db, sql, values).lastrowid
     db.commit()
     return jsonify(id=new_id), 201
+
+
+@app.put("/api/expenses/<int:expense_id>")
+def update_expense(expense_id):
+    """NEW: edit an existing expense."""
+    values, error = parse_expense(request.get_json(silent=True) or {})
+    if error:
+        return error
+    db = get_db()
+    cur = run(
+        db,
+        "UPDATE expenses SET description = ?, amount = ?, category = ?, date = ? WHERE id = ?",
+        (*values, expense_id),
+    )
+    db.commit()
+    if cur.rowcount == 0:
+        return jsonify(error="Expense not found."), 404
+    return jsonify(ok=True)
 
 
 @app.delete("/api/expenses/<int:expense_id>")

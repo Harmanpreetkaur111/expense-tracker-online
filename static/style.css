@@ -81,3 +81,14 @@ ul { list-style: none; margin: 0; padding: 0; }
 .track { height: 8px; background: var(--bar-track); border-radius: 4px; overflow: hidden; }
 .fill { height: 100%; border-radius: 4px; transition: width .3s; }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+
+/* ===== v2: filters and edit ===== */
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 4px; }
+.filters .wide { grid-column: 1 / -1; }
+.filters label { margin: 0; font-size: .8rem; }
+.filters label input { margin-top: 2px; }
+.filters .reset { width: 100%; }
+button.cancel { width: 100%; margin-top: 8px; }
+button[hidden] { display: none; }
+.edit:hover { color: var(--accent); border-color: var(--accent); }
+.item { flex-wrap: nowrap; }
