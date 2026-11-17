@@ -2,7 +2,7 @@
 // Flow: user action -> API call -> backend changes database -> reload data -> render()
 
 const CATEGORIES = [
-  { name: "Food",          color: "#e8833a" },
+  { name: "Food",          color: "#cc5f11" },
   { name: "Transport",     color: "#3b82c4" },
   { name: "Shopping",      color: "#a15bd0" },
   { name: "Bills",         color: "#d6455d" },
@@ -23,6 +23,8 @@ let shown = [];         // the expenses currently on screen
 async function api(url, options = {}) {
   const res = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
   const data = await res.json();
+  // Session expired or not logged in: go back to the login screen
+  if (res.status === 401 && !url.includes("/api/login")) showAuth();
   if (!res.ok) throw new Error(data.error || "Something went wrong.");
   return data;
 }
@@ -71,7 +73,7 @@ async function render() {
         </div>`).join("")
       : "";
   } catch (err) {
-    $("error").textContent = "Can’t reach the server. Is app.py running?";
+    if (err.message !== "Please log in.") $("error").textContent = "Can’t reach the server. Is app.py running?";
   }
 }
 
@@ -168,4 +170,55 @@ $("themeBtn").addEventListener("click", () => {
   root.dataset.theme = dark ? "light" : "dark";
 });
 
-render();
+// ---------- LOGIN / SIGN UP ----------
+let authMode = "login";
+
+function showAuth() {
+  $("auth").hidden = false; $("app").hidden = true;
+  $("who").textContent = ""; $("logoutBtn").hidden = true;
+}
+function showApp(username) {
+  $("auth").hidden = true; $("app").hidden = false;
+  $("who").textContent = "Signed in as " + username; $("logoutBtn").hidden = false;
+  render();
+}
+function setMode(mode) {
+  authMode = mode;
+  $("authTitle").textContent = mode === "login" ? "Log in" : "Create an account";
+  $("authBtn").textContent = mode === "login" ? "Log in" : "Sign up";
+  $("switchMode").textContent = mode === "login" ? "New here? Create an account" : "Have an account? Log in";
+  $("password").autocomplete = mode === "login" ? "current-password" : "new-password";
+  $("authError").textContent = "";
+}
+async function submitAuth() {
+  try {
+    const r = await api(authMode === "login" ? "/api/login" : "/api/register", {
+      method: "POST",
+      body: JSON.stringify({ username: $("username").value, password: $("password").value })
+    });
+    $("password").value = "";
+    $("authError").textContent = "";
+    showApp(r.username);
+  } catch (err) {
+    $("authError").textContent = err.message;
+  }
+}
+async function logout() {
+  try { await api("/api/logout", { method: "POST" }); } catch (e) {}
+  exitEdit(); resetFilters();
+  showAuth();
+}
+
+$("authBtn").addEventListener("click", submitAuth);
+$("switchMode").addEventListener("click", () => setMode(authMode === "login" ? "register" : "login"));
+$("password").addEventListener("keydown", e => { if (e.key === "Enter") submitAuth(); });
+$("logoutBtn").addEventListener("click", logout);
+
+// On page load: are we already logged in?
+async function init() {
+  try {
+    const me = await api("/api/me");
+    if (me.username) showApp(me.username); else showAuth();
+  } catch (e) { showAuth(); }
+}
+init();
